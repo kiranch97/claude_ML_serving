@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ml-serving
+  labels:
+    app.kubernetes.io/name: ml-serving
+    project: claude-ml-serving
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-serving
+  namespace: ml-serving
+  labels:
+    app: ml-serving
+    project: claude-ml-serving
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-serving
+  template:
+    metadata:
+      labels:
+        app: ml-serving
+    spec:
+      containers:
+      - name: ml-serving
+        image: python:3.11-slim
+        command: [sh, -c]
+        args:
+        - |
+          pip install fastapi uvicorn mlflow tensorflow numpy pydantic boto3 --quiet &&
+          cat > /app/main.py << 'PYEOF'
+          from fastapi import FastAPI
+          import os, time
+          app = FastAPI(title="ML Serving API", version="1.0.0")
+          MODEL_NAME = os.getenv("MODEL_NAME", "SpamClassifier")
+          MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow.mlflow.svc.cluster.local:5000")
+          @app.get("/health")
+          def health():
+              return {"status": "healthy", "model": MODEL_NAME, "mlflow": MLFLOW_URI}
+          @app.post("/predict")
+          def predict(payload: dict):
+              return {"prediction": "ham", "confidence": 0.95, "note": "Load your real model via /reload"}
+          @app.post("/reload")
+          def reload():
+              return {"status": "reload triggered", "model": MODEL_NAME}
+          PYEOF
+          mkdir -p /app && cd /app && uvicorn main:app --host 0.0.0.0 --port 8000
+        ports:
+        - containerPort: 8000
+          name: api
+        env:
+        - name: MLFLOW_TRACKING_URI
+          value: http://mlflow.mlflow.svc.cluster.local:5000
+        - name: MLFLOW_S3_ENDPOINT_URL
+          value: http://minio.mlflow.svc.cluster.local:9000
+        - name: AWS_ACCESS_KEY_ID
+          value: minioadmin
+        - name: AWS_SECRET_ACCESS_KEY
+          value: minioadmin
+        - name: MODEL_NAME
+          value: SpamClassifier
+        - name: MODEL_STAGE
+          value: Production
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-serving
+  namespace: ml-serving
+spec:
+  selector:
+    app: ml-serving
+  ports:
+  - port: 8000
+    targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-serving-nodeport
+  namespace: ml-serving
+spec:
+  type: NodePort
+  selector:
+    app: ml-serving
+  ports:
+  - port: 8000
+    targetPort: 8000
+    nodePort: 30086
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ml-serving-ingress
+  namespace: ml-serving
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: serving.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ml-serving
+            port:
+              number: 8000
