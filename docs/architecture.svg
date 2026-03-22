@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" font-family="Arial, sans-serif">
+  <rect width="900" height="480" fill="#f8f9fa" rx="8"/>
+  <text x="450" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e1e1e">claude_ML_serving — Model Serving</text>
+  <text x="450" y="48" text-anchor="middle" font-size="12" fill="#6c757d">FastAPI Inference Server on Kubernetes</text>
+
+  <!-- Client -->
+  <rect x="330" y="65" width="240" height="45" fill="#a5d8ff" rx="6" stroke="#4a9eed"/>
+  <text x="450" y="86" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e3a5f">Client / Streamlit / curl</text>
+  <text x="450" y="102" text-anchor="middle" font-size="11" fill="#1e3a5f">POST /predict  |  GET /health</text>
+  <line x1="450" y1="110" x2="450" y2="145" stroke="#4a9eed" stroke-width="2"/>
+
+  <!-- NodePort -->
+  <rect x="310" y="145" width="280" height="40" fill="#c3fae8" rx="6" stroke="#0d9488"/>
+  <text x="450" y="163" text-anchor="middle" font-size="12" font-weight="bold" fill="#0f766e">NodePort: 30086 | Ingress: serving.local</text>
+  <text x="450" y="178" text-anchor="middle" font-size="11" fill="#0f766e">Namespace: ml-serving</text>
+  <line x1="450" y1="185" x2="450" y2="220" stroke="#0d9488" stroke-width="2"/>
+
+  <!-- FastAPI Box -->
+  <rect x="250" y="220" width="400" height="90" fill="#d0bfff" rx="6" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="450" y="244" text-anchor="middle" font-size="14" font-weight="bold" fill="#2d1b69">FastAPI Inference Server</text>
+  <text x="450" y="261" text-anchor="middle" font-size="12" fill="#2d1b69">Image: python:3.11-slim + TensorFlow</text>
+  <text x="450" y="277" text-anchor="middle" font-size="11" fill="#2d1b69">Port: 8000 | /predict /health /reload /docs</text>
+  <text x="450" y="292" text-anchor="middle" font-size="11" fill="#2d1b69">Loads model from MLflow Registry on startup</text>
+
+  <!-- Lines to MLflow and MinIO -->
+  <line x1="350" y1="310" x2="210" y2="370" stroke="#8b5cf6" stroke-width="2"/>
+  <line x1="550" y1="310" x2="690" y2="370" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="255" y="346" text-anchor="middle" font-size="11" fill="#6d28d9">load model</text>
+  <text x="645" y="346" text-anchor="middle" font-size="11" fill="#6d28d9">fetch artifacts</text>
+
+  <!-- MLflow -->
+  <rect x="70" y="370" width="280" height="65" fill="#b2f2bb" rx="6" stroke="#22c55e" stroke-width="2"/>
+  <text x="210" y="393" text-anchor="middle" font-size="13" font-weight="bold" fill="#14532d">MLflow Registry</text>
+  <text x="210" y="409" text-anchor="middle" font-size="11" fill="#14532d">claude_ML_project3</text>
+  <text x="210" y="424" text-anchor="middle" font-size="11" fill="#14532d">http://mlflow.mlflow.svc.cluster.local:5000</text>
+
+  <!-- MinIO -->
+  <rect x="550" y="370" width="280" height="65" fill="#b2f2bb" rx="6" stroke="#22c55e" stroke-width="2"/>
+  <text x="690" y="393" text-anchor="middle" font-size="13" font-weight="bold" fill="#14532d">MinIO Artifact Store</text>
+  <text x="690" y="409" text-anchor="middle" font-size="11" fill="#14532d">claude_ML_project3</text>
+  <text x="690" y="424" text-anchor="middle" font-size="11" fill="#14532d">s3://mlflow-artifacts/SpamClassifier/</text>
+
+  <!-- API endpoints reference -->
+  <rect x="100" y="450" width="700" height="22" fill="#fff3bf" rx="4" stroke="#f59e0b"/>
+  <text x="450" y="465" text-anchor="middle" font-size="11" fill="#713f12">API: GET /health | GET /model-info | POST /predict | POST /reload | GET /docs (Swagger)</text>
+</svg>
