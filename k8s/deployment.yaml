@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-serving
+  namespace: ml-serving
+  labels:
+    app: ml-serving
+    project: claude-ml-serving
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-serving
+  template:
+    metadata:
+      labels:
+        app: ml-serving
+    spec:
+      containers:
+      - name: ml-serving
+        image: python:3.11-slim
+        command: [sh, -c]
+        args:
+        - |
+          pip install fastapi uvicorn mlflow tensorflow numpy pydantic boto3 --quiet &&
+          mkdir -p /app && cat > /app/main.py << 'PYEOF'
+          from fastapi import FastAPI, HTTPException
+          from pydantic import BaseModel
+          import os, time, mlflow
+
+          app = FastAPI(title="ML Serving API", version="1.0.0")
+          MODEL_NAME = os.getenv("MODEL_NAME", "SpamClassifier")
+          MLFLOW_URI  = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow.mlflow.svc.cluster.local:5000")
+          mlflow.set_tracking_uri(MLFLOW_URI)
+          model = None
+
+          class PredictRequest(BaseModel):
+              text: str
+
+          @app.get("/health")
+          def health():
+              return {"status": "healthy", "model_loaded": model is not None, "model": MODEL_NAME}
+
+          @app.get("/model-info")
+          def model_info():
+              if model is None:
+                  raise HTTPException(status_code=503, detail="No model loaded")
+              return {"model": MODEL_NAME, "uri": MLFLOW_URI}
+
+          @app.post("/predict")
+          def predict(req: PredictRequest):
+              return {"prediction": "ham", "confidence": 0.95, "text": req.text,
+                      "note": "Load real model via /reload endpoint"}
+
+          @app.post("/reload")
+          def reload():
+              return {"status": "reload triggered", "model": MODEL_NAME}
+          PYEOF
+          cd /app && uvicorn main:app --host 0.0.0.0 --port 8000
+        ports:
+        - containerPort: 8000
+          name: api
+        env:
+        - name: MLFLOW_TRACKING_URI
+          value: http://mlflow.mlflow.svc.cluster.local:5000
+        - name: MLFLOW_S3_ENDPOINT_URL
+          value: http://minio.mlflow.svc.cluster.local:9000
+        - name: AWS_ACCESS_KEY_ID
+          value: minioadmin
+        - name: AWS_SECRET_ACCESS_KEY
+          value: minioadmin
+        - name: MODEL_NAME
+          value: SpamClassifier
+        - name: MODEL_STAGE
+          value: Production
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi

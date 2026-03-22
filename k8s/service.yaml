@@ -1,0 +1,16 @@
+# ClusterIP service for internal cluster access
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-serving
+  namespace: ml-serving
+  labels:
+    app: ml-serving
+    project: claude-ml-serving
+spec:
+  selector:
+    app: ml-serving
+  ports:
+  - name: api
+    port: 8000
+    targetPort: 8000
